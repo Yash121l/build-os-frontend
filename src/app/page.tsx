@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { track } from '@/lib/analytics';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -82,6 +83,20 @@ const features = [
 
 export default function BuildOSDemo() {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const featuresRef = useRef<HTMLElement>(null);
+
+  // Fire once when the visitor scrolls far enough to see the features section.
+  useEffect(() => {
+    const el = featuresRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      track('features_section_viewed');
+      observer.disconnect();
+    }, { threshold: 0.4 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -128,7 +143,7 @@ export default function BuildOSDemo() {
                       onMouseEnter={() => setHoveredCard(index)}
                       onMouseLeave={() => setHoveredCard(null)}
                     >
-                      <div className={`absolute inset-0 bg-gradient-to-br ${role.color} opacity-5`} />
+                      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${role.color} opacity-5`} />
 
                       <CardHeader className="relative">
                         <div className="flex items-center justify-between mb-3">
@@ -165,7 +180,11 @@ export default function BuildOSDemo() {
                           className="w-full group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                           asChild
                         >
-                          <a href={role.href} className="flex items-center justify-center gap-2">
+                          <a
+                            href={role.href}
+                            onClick={() => track('demo_role_selected', { role: role.title, destination: role.href })}
+                            className="flex items-center justify-center gap-2"
+                          >
                             Explore Dashboard
                             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                           </a>
@@ -179,7 +198,7 @@ export default function BuildOSDemo() {
           </div>
 
           {/* Features Section */}
-          <section className="mt-20">
+          <section ref={featuresRef} className="mt-20">
             <h3 className="text-3xl font-bold text-center text-slate-900 mb-12">
               Why Choose BuildOS?
             </h3>
